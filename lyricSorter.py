@@ -6,10 +6,14 @@ from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 from sklearn.feature_extraction.text import CountVectorizer
 from nltk.stem.porter import PorterStemmer
-from sklearn.model_selection import train_test_split
-from sklearn.naive_bayes import MultinomialNB, GaussianNB, BernoulliNB
+from sklearn.model_selection import train_test_split, cross_validate, StratifiedKFold, StratifiedShuffleSplit, cross_val_score
+from sklearn.naive_bayes import MultinomialNB#Best NB model for this dataset
 from sklearn.svm import SVC
 from imblearn.over_sampling import RandomOverSampler
+from sklearn.metrics import confusion_matrix
+import matplotlib.pyplot as plt
+from sklearn import datasets
+
 #vars
 stemmer = PorterStemmer()
 analyzer = CountVectorizer().build_analyzer()
@@ -54,33 +58,57 @@ X_test_vectorized = vectorizer.transform([r for r in X_test]).toarray()
 print("Resampling corpus\n")
 rs = RandomOverSampler()
 X_resampledRe, y_resampledRe = rs.fit_sample(X_train_vectorized, y_train)
+
 #model
-print("fitting for Bernoulli Naive Bayes")
-clf = BernoulliNB()
+# print("fitting for Naive Bayes")#most effective w/out cross validation
+# clf = MultinomialNB( )
+# clf.fit(X_train_vectorized, y_train)
+# predicted = clf.predict(X_test_vectorized)
+# print(str(predicted) + "\t" + "accuracy: " + str(np.mean(predicted == y_test)))
+# conf = confusion_matrix(y_test, predicted)#shows number correct and incorrect for each group
+# #The y axis is the Beatles then Taylor swift and the x axis is the guesses first being beatles second being taylor swift
+# #this means that 1,1 being higher is good and 2,2 being higher is good as it shows more accuracy
+# print(conf)
+
+# print("fitting for Naive Bayes with resampled corpus")#2nd most effective
+# clf = MultinomialNB( )
+# clf.fit(X_resampledRe, y_resampledRe)
+# predicted = clf.predict(X_test_vectorized)
+# print(str(predicted) + "\t" + "accuracy: " + str(np.mean(predicted == y_test)))
+
+# print("fitting for support vector machine")#3rd most effective
+# clf = SVC( )
+# clf.fit(X_train_vectorized, y_train)
+# predicted = clf.predict(X_test_vectorized)
+# print(str(predicted) + "\t" + "accuracy: " + str(np.mean(predicted == y_test)))
+
+# print("fitting for support vector machine with resampled corpus")#least effective
+# clf = SVC( )
+# clf.fit(X_resampledRe, y_resampledRe)
+# predicted = clf.predict(X_test_vectorized)
+# print(str(predicted) + "\t" + "accuracy: " + str(np.mean(predicted == y_test)))
+
+print("Using cross-validation with models.")# cross validation makes sure that you get the real accuracy of
+#your model by running it through multiple training sessions. If you get similar accuracies you know your model
+#is fairly consistent in its accuracy and what its true accuracy is.
+lyricsVectorized = vectorizer.transform([r for r in lyrics]).toarray()
+stratSplit = StratifiedShuffleSplit(n_splits=5, random_state=randState, test_size=.2) 
+print("Fitting for Support Vector Machine and testing with cross validation")
+clf = SVC( )
 clf.fit(X_train_vectorized, y_train)
-predicted = clf.predict(X_test_vectorized)
+predicted = clf.predict(X_test_vectorized) #0.6008697753080454
 print(str(predicted) + "\t" + "accuracy: " + str(np.mean(predicted == y_test)))
+scores = cross_validate(estimator=clf, X=lyricsVectorized, y=artists, cv=stratSplit, return_train_score=False, n_jobs=-1)
+#Will return test score, fit time, and score time
+print(scores["test_score"])
+#results: [0.58758154 0.58758154 0.58758154 0.58758154 0.58758154]
 
-print("fitting for Naive Bayes")
-clf = MultinomialNB()
+print("Fitting for Naive Bayes and testing with cross validation")#remains most effective
+clf = MultinomialNB( )
 clf.fit(X_train_vectorized, y_train)
-predicted = clf.predict(X_test_vectorized)
+predicted = clf.predict(X_test_vectorized) # 0.7593621647741
 print(str(predicted) + "\t" + "accuracy: " + str(np.mean(predicted == y_test)))
-
-print("fitting for Naive Bayes with resampled corpus")
-clf = MultinomialNB()
-clf.fit(X_resampledRe, y_resampledRe)
-predicted = clf.predict(X_test_vectorized)
-print(str(predicted) + "\t" + "accuracy: " + str(np.mean(predicted == y_test)))
-
-print("fitting for support vector machine")
-clf = SVC()
-clf.fit(X_train_vectorized, y_train)
-predicted = clf.predict(X_test_vectorized)
-print(str(predicted) + "\t" + "accuracy: " + str(np.mean(predicted == y_test)))
-
-print("fitting for support vector machine with resampled corpus")
-clf = SVC()
-clf.fit(X_resampledRe, y_resampledRe)
-predicted = clf.predict(X_test_vectorized)
-print(str(predicted) + "\t" + "accuracy: " + str(np.mean(predicted == y_test)))
+scores = cross_validate(estimator=clf, X=lyricsVectorized, y=artists, cv=stratSplit, return_train_score=False, n_jobs=-1)
+#Will return test score, fit time, and score time
+print(scores["test_score"])
+#results: [0.77240879 0.76105339 0.75984537 0.75791254 0.7554965 ]
