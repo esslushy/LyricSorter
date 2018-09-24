@@ -112,3 +112,8 @@ scores = cross_validate(estimator=clf, X=lyricsVectorized, y=artists, cv=stratSp
 #Will return test score, fit time, and score time
 print(scores["test_score"])
 #results: [0.77240879 0.76105339 0.75984537 0.75791254 0.7554965 ]
+
+
+#MultinomialNB was the superiour model  as it had a higher accuracy with only a .022 instability. While the 
+#Support vector machine had perfect stability, the lack of examples made it have a poorer accuracy according
+#to sklearn documentation.
